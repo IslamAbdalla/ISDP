@@ -58,6 +58,8 @@ void dmpDataReady() {
   mpuInterrupt = true;
 }
 
+// ==============================================================
+int readAnglePin = 4;
 
 
 // ================================================================
@@ -67,6 +69,8 @@ void dmpDataReady() {
 void setup() {
   pinMode(LED, OUTPUT);
   pinMode(LED2, OUTPUT);
+  pinMode(readAnglePin, INPUT);
+
   // join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
   Wire.begin();
@@ -150,14 +154,38 @@ void setup() {
 int count1 = 0;
 int count = 0;
 int angle = 0; int zeroang = 0;
-int n = 0;
+int flag = 1;
+int readAngle;
+int refAngle;
 void loop() {
-
   // if programming failed, don't try to do anything
   if (!dmpReady) return;
 
   // wait for MPU interrupt or extra packet(s) available
   while (!mpuInterrupt && fifoCount < packetSize) {
+
+
+    int angle ;
+    angle = ypr[0] * 180 / M_PI;
+
+
+    readAngle = digitalRead(readAnglePin);
+
+    if (readAngle) {
+      if (flag) {
+        refAngle = angle;
+        flag = 0;
+      }
+      Serial.print("Diff = ");
+      Serial.println(refAngle - angle);
+    } 
+    else {
+      
+      Serial.print(readAngle);
+      Serial.print(" ");
+      Serial.println(angle);
+    }
+
     // other program behavior stuff here
     // .
     // .
@@ -199,48 +227,10 @@ void loop() {
     mpu.dmpGetQuaternion(&q, fifoBuffer);
     mpu.dmpGetGravity(&gravity, &q);
     mpu.dmpGetYawPitchRoll(ypr, &q, &gravity);
-    /* Serial.print("ypr\t");
-      Serial.print(ypr[0] * 180/M_PI);
-      Serial.print("\t");
-      Serial.print(ypr[1] * 180/M_PI);
-      Serial.print("\t");
-      Serial.println(ypr[2] * 180/M_PI);
-    */
 
 
     // blink LED to indicate activity
     blinkState = !blinkState;
-    digitalWrite(LED_PIN, blinkState);
-    int test ;
-    test = ypr[0] * 180 / M_PI;
-    count1 = count1 + 1;
-    if (count1 > 5000) {
-      count = count + 1;
-      digitalWrite(LED, HIGH);
-      if (count == 1)
-      { zeroang = test;
-        n = zeroang + 90;
-        if (n > 180)
-          n = n - 360;
-      }
-      else
-        n = n;
-      Serial.print("90 angle = ");
-      Serial.print(n);
-      if (test == n)
-        digitalWrite(LED2, HIGH);
-      else
-        digitalWrite(LED2, LOW);
-    }
-    else
-      count = count;
-
-    digitalWrite(LED, LOW);
-    Serial.print(" count =  ");
-    Serial.print(count);
-    Serial.print(" angle now ");
-    Serial.println(test);
-
     /*
        if(test == 90)
        digitalWrite(LED,HIGH);
