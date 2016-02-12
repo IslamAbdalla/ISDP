@@ -59,7 +59,16 @@ void dmpDataReady() {
 }
 
 // ==============================================================
+// ===                  PROGRAM VARIABLES                     ===
+//===============================================================
 int readAnglePin = 4;
+int flag = 1;
+int readAngle;
+int refAngle = 0;
+int leftPin = 9;
+int rightPin = 10;
+int backMotor = 11;
+int angle ;
 
 
 // ================================================================
@@ -67,14 +76,21 @@ int readAnglePin = 4;
 // ================================================================
 
 void setup() {
+  /******************** Program setup **************************/
+
   pinMode(LED, OUTPUT);
   pinMode(LED2, OUTPUT);
   pinMode(readAnglePin, INPUT);
+  pinMode(leftPin, OUTPUT);
+  pinMode(rightPin, OUTPUT);
+  pinMode(backMotor, OUTPUT);
+
+  /*************************************************************/
 
   // join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
   Wire.begin();
-  TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+  TWBR = 48; // 400kHz I2C clock (200kHz if CPU is 8MHz)
 #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
   Fastwire::setup(400, true);
 #endif
@@ -99,12 +115,6 @@ void setup() {
   Serial.println(F("Testing device connections..."));
   Serial.println(mpu.testConnection() ? F("MPU6050 connection successful") : F("MPU6050 connection failed"));
 
-  // wait for ready
-  /*Serial.println(F("\nSend any character to begin DMP programming and demo: "));
-    while (Serial.available() && Serial.read()); // empty buffer
-    while (!Serial.available());                 // wait for data
-    while (Serial.available() && Serial.read()); // empty buffer again
-  */
   // load and configure the DMP
   Serial.println(F("Initializing DMP..."));
   devStatus = mpu.dmpInitialize();
@@ -151,12 +161,23 @@ void setup() {
 // ================================================================
 // ===                    MAIN PROGRAM LOOP                     ===
 // ================================================================
-int count1 = 0;
-int count = 0;
-int angle = 0; int zeroang = 0;
-int flag = 1;
-int readAngle;
-int refAngle;
+
+#define stepPWM 100
+#define stepTime 10
+
+void stepLeft() {
+  analogWrite(rightPin, 0);
+  analogWrite(leftPin, 100);
+  delay(10);
+  analogWrite(leftPin, 0);
+}
+
+void stepRight() {
+  analogWrite(leftPin, 0);
+  analogWrite(rightPin, 100);
+  delay(10);
+  analogWrite(rightPin, 0);
+}
 void loop() {
   // if programming failed, don't try to do anything
   if (!dmpReady) return;
@@ -164,8 +185,10 @@ void loop() {
   // wait for MPU interrupt or extra packet(s) available
   while (!mpuInterrupt && fifoCount < packetSize) {
 
+    //    for( int x = 0; x < 20 ; x++)
+    //      stepRight();
 
-    int angle ;
+    // delay(10);
     angle = ypr[0] * 180 / M_PI;
 
 
@@ -178,9 +201,9 @@ void loop() {
       }
       Serial.print("Diff = ");
       Serial.println(refAngle - angle);
-    } 
+    }
     else {
-      
+
       Serial.print(readAngle);
       Serial.print(" ");
       Serial.println(angle);
@@ -231,10 +254,36 @@ void loop() {
 
     // blink LED to indicate activity
     blinkState = !blinkState;
-    /*
-       if(test == 90)
-       digitalWrite(LED,HIGH);
-       else
-       digitalWrite(LED,LOW);*/
+
+    analogWrite(backMotor, (angle > 50 )? 250 : angle+ 200);  
+
+    if (refAngle) {
+      if ((refAngle - angle) < 0) {
+        // Rotate left
+        analogWrite(leftPin, 0);
+        analogWrite(rightPin, (angle - refAngle) * 4  + 100);
+        Serial.println("Rotate left");
+      }
+      else if ((refAngle - angle) > 0) {
+
+
+        // Rotate right
+
+
+        analogWrite(rightPin, 0);
+        analogWrite(leftPin, (refAngle - angle) * 4  + 100);
+        Serial.println("Rotate right");
+
+      }
+      else {
+        // Stop
+        analogWrite(rightPin, 0);
+        analogWrite(leftPin, 0);
+        Serial.println("Straight");
+
+      }
+    }
+
+
   }
 }
