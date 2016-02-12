@@ -25,8 +25,6 @@ MPU6050 mpu;
 
 #define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 bool blinkState = false;
-int LED = 7;
-int LED2 = 8;
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
 uint8_t mpuIntStatus;   // holds actual interrupt status byte from MPU
@@ -69,6 +67,8 @@ int leftPin = 9;
 int rightPin = 10;
 int backMotor = 11;
 int angle ;
+int LED = 7;
+int LED2 = 8;
 
 
 // ================================================================
@@ -262,6 +262,9 @@ void loop() {
         analogWrite(leftPin, 0);
         analogWrite(rightPin, (angle - refAngle) * 4  + 100);
         Serial.println("Rotate left");
+        
+        digitalWrite(LED, HIGH);
+        digitalWrite(LED2, LOW);
       }
       else if ((refAngle - angle) > 0) {
 
@@ -272,12 +275,18 @@ void loop() {
         analogWrite(rightPin, 0);
         analogWrite(leftPin, (refAngle - angle) * 4  + 100);
         Serial.println("Rotate right");
+        
+        digitalWrite(LED, LOW);
+        digitalWrite(LED2, HIGH);
 
       }
       else {
         // Stop
         analogWrite(rightPin, 0);
         analogWrite(leftPin, 0);
+
+        digitalWrite(LED, HIGH);
+        digitalWrite(LED2, HIGH);
         Serial.println("Straight");
 
       }
