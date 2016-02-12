@@ -90,7 +90,7 @@ void setup() {
   // join I2C bus (I2Cdev library doesn't do this automatically)
 #if I2CDEV_IMPLEMENTATION == I2CDEV_ARDUINO_WIRE
   Wire.begin();
-  TWBR = 48; // 400kHz I2C clock (200kHz if CPU is 8MHz)
+  TWBR = 24; // 400kHz I2C clock (200kHz if CPU is 8MHz)
 #elif I2CDEV_IMPLEMENTATION == I2CDEV_BUILTIN_FASTWIRE
   Fastwire::setup(400, true);
 #endif
@@ -191,23 +191,22 @@ void loop() {
     // delay(10);
     angle = ypr[0] * 180 / M_PI;
 
-
-    readAngle = digitalRead(readAnglePin);
+    if ( flag) {
+      readAngle = digitalRead(readAnglePin);
+     // Serial.print(readAngle);
+     // Serial.print(" ");
+      Serial.println(angle);
+    }
+    else { 
+      readAngle = 0;
+      Serial.print("Diff = ");
+      Serial.println(refAngle - angle);}
 
     if (readAngle) {
-      if (flag) {
         refAngle = angle;
         flag = 0;
       }
-      Serial.print("Diff = ");
-      Serial.println(refAngle - angle);
-    }
-    else {
 
-      Serial.print(readAngle);
-      Serial.print(" ");
-      Serial.println(angle);
-    }
 
     // other program behavior stuff here
     // .
