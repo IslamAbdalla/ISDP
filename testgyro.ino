@@ -196,11 +196,19 @@ void loop() {
      // Serial.print(readAngle);
      // Serial.print(" ");
       Serial.println(angle);
+
+        digitalWrite(LED, (angle & 0b01)? HIGH : LOW);
+        
+        digitalWrite(LED2, (angle & 0b10)? HIGH : LOW);
+      
     }
     else { 
       readAngle = 0;
+      readAngle = digitalRead(readAnglePin);
       Serial.print("Diff = ");
       Serial.println(refAngle - angle);}
+
+      
 
     if (readAngle) {
         refAngle = angle;
@@ -254,9 +262,11 @@ void loop() {
     // blink LED to indicate activity
     blinkState = !blinkState;
 
-    analogWrite(backMotor, (angle > 50 )? 250 : angle+ 200);  
+   // analogWrite(backMotor, (angle > 50 )? 250 : angle+ 200);  
+     
 
     if (refAngle) {
+      analogWrite(backMotor, 170); 
       if ((refAngle - angle) < 0) {
         // Rotate left
         analogWrite(leftPin, 0);
