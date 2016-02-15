@@ -70,6 +70,11 @@ int angle ;
 int LED = 7;
 int LED2 = 8;
 
+// IR Variables
+int IRFrontPin = 5;
+int IRFront = 1;
+int IRFrontFlag = 0 ;
+
 
 // ================================================================
 // ===                      INITIAL SETUP                       ===
@@ -84,6 +89,7 @@ void setup() {
   pinMode(leftPin, OUTPUT);
   pinMode(rightPin, OUTPUT);
   pinMode(backMotor, OUTPUT);
+  pinMode(IRFrontPin, INPUT);
 
   /*************************************************************/
 
@@ -190,30 +196,43 @@ void loop() {
 
     // delay(10);
     angle = ypr[0] * 180 / M_PI;
+    IRFront = digitalRead(IRFrontPin);   // White ==== 0; Black === 1;
 
     if ( flag) {
-      readAngle = digitalRead(readAnglePin);
-     // Serial.print(readAngle);
-     // Serial.print(" ");
-      Serial.println(angle);
-
-        digitalWrite(LED, (angle & 0b01)? HIGH : LOW);
-        
-        digitalWrite(LED2, (angle & 0b10)? HIGH : LOW);
       
+      readAngle = digitalRead(readAnglePin);
+
+      // Serial.print(readAngle);
+      // Serial.print(" ");
+
+      //Serial.println(angle);
+
+
+      digitalWrite(LED, (angle & 0b01) ? HIGH : LOW);
+
+      digitalWrite(LED2, (angle & 0b10) ? HIGH : LOW);
+
     }
-    else { 
+    else {
       readAngle = 0;
       readAngle = digitalRead(readAnglePin);
-      Serial.print("Diff = ");
-      Serial.println(refAngle - angle);}
 
-      
+      // Print ref
+      Serial.print("Ref = ");
+      Serial.print(refAngle);
+
+      // Print diff
+      Serial.print("\tDiff = ");
+      Serial.println(refAngle - angle);
+
+    }
+
+
 
     if (readAngle) {
-        refAngle = angle;
-        flag = 0;
-      }
+      refAngle = angle;
+      flag = 0;
+    }
 
 
     // other program behavior stuff here
@@ -262,17 +281,19 @@ void loop() {
     // blink LED to indicate activity
     blinkState = !blinkState;
 
-   // analogWrite(backMotor, (angle > 50 )? 250 : angle+ 200);  
-     
+    // analogWrite(backMotor, (angle > 50 )? 250 : angle+ 200);
+
+    //analogWrite(backMotor, 255);
 
     if (refAngle) {
-      analogWrite(backMotor, 170); 
+
+      analogWrite(backMotor, 255);
       if ((refAngle - angle) < 0) {
         // Rotate left
         analogWrite(leftPin, 0);
-        analogWrite(rightPin, (angle - refAngle) * 4  + 100);
-        Serial.println("Rotate left");
-        
+        analogWrite(rightPin, (angle - refAngle) * 4  + 80);
+        //Serial.println("Rotate left");
+
         digitalWrite(LED, HIGH);
         digitalWrite(LED2, LOW);
       }
@@ -283,9 +304,9 @@ void loop() {
 
 
         analogWrite(rightPin, 0);
-        analogWrite(leftPin, (refAngle - angle) * 4  + 100);
-        Serial.println("Rotate right");
-        
+        analogWrite(leftPin, (refAngle - angle) * 4  + 80);
+        //Serial.println("Rotate right");
+
         digitalWrite(LED, LOW);
         digitalWrite(LED2, HIGH);
 
@@ -297,10 +318,24 @@ void loop() {
 
         digitalWrite(LED, HIGH);
         digitalWrite(LED2, HIGH);
-        Serial.println("Straight");
+        //Serial.println("Straight");
+
+      }
+//    Serial.print(IRFrontFlag );
+//    Serial.print(" " );
+//    Serial.print(IRFront );
+//    
+      // IR reading
+      if (IRFrontFlag && !IRFront) {
+        refAngle += 90;
+        IRFrontFlag = 0;
+      } else if (!IRFrontFlag && IRFront) {
+        IRFrontFlag = 1;
 
       }
     }
+
+
 
 
   }
