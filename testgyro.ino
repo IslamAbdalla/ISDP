@@ -205,7 +205,7 @@ void loop() {
       // Serial.print(readAngle);
       // Serial.print(" ");
 
-      //Serial.println(angle);
+      Serial.println(angle);
 
 
       digitalWrite(LED, (angle & 0b01) ? HIGH : LOW);
@@ -328,6 +328,9 @@ void loop() {
       // IR reading
       if (IRFrontFlag && !IRFront) {
         refAngle += 90;
+        refAngle = (refAngle > 180)? (refAngle - 180) + -180:
+                   (refAngle < -180)? (refAngle - -180) + 180:
+                   refAngle  ;
         IRFrontFlag = 0;
       } else if (!IRFrontFlag && IRFront) {
         IRFrontFlag = 1;
