@@ -59,21 +59,26 @@ void dmpDataReady() {
 // ==============================================================
 // ===                  PROGRAM VARIABLES                     ===
 //===============================================================
-int readAnglePin = 4;
+int readAnglePin = 3;
 int flag = 1;
 int readAngle;
 int refAngle = 0;
-int leftPin = 9;
-int rightPin = 10;
-int backMotor = 11;
+int backMotor = 9;
 int angle ;
-int LED = 7;
+int LED = 1;
 int LED2 = 8;
 
 // IR Variables
 int IRFrontPin = 5;
 int IRFront = 1;
 int IRFrontFlag = 0 ;
+
+#define MOTOR_PWM   80
+
+int leftMotorDir = 4;
+int leftPin = 5;
+int rightPin = 6;
+int rightMotorDir = 7;    
 
 
 // ================================================================
@@ -90,6 +95,8 @@ void setup() {
   pinMode(rightPin, OUTPUT);
   pinMode(backMotor, OUTPUT);
   pinMode(IRFrontPin, INPUT);
+  pinMode(leftMotorDir, OUTPUT);   
+  pinMode(rightMotorDir, OUTPUT);   
 
   /*************************************************************/
 
@@ -186,7 +193,7 @@ void stepRight() {
 }
 void loop() {
   // if programming failed, don't try to do anything
-  if (!dmpReady) return;
+ // if (!dmpReady) return;      // commented to test
 
   // wait for MPU interrupt or extra packet(s) available
   while (!mpuInterrupt && fifoCount < packetSize) {
@@ -284,14 +291,21 @@ void loop() {
     // analogWrite(backMotor, (angle > 50 )? 250 : angle+ 200);
 
     //analogWrite(backMotor, 255);
+    analogWrite(leftPin, 255 );
+    analogWrite(rightPin, 255  );
 
     if (refAngle) {
 
       analogWrite(backMotor, 255);
       if ((refAngle - angle) < 0) {
         // Rotate left
-        analogWrite(leftPin, 0);
-        analogWrite(rightPin, (angle - refAngle) * 4  + 80);
+//        analogWrite(leftPin, 0);
+//        analogWrite(rightPin, (angle - refAngle) * 4  + 80);
+
+        // Differential: Turn left
+        analogWrite(leftPin, MOTOR_PWM - (angle - refAngle) * MOTOR_PWM/ 90 );
+        analogWrite(rightPin, MOTOR_PWM );
+        
         //Serial.println("Rotate left");
 
         digitalWrite(LED, HIGH);
@@ -302,25 +316,37 @@ void loop() {
 
         // Rotate right
 
-
-        analogWrite(rightPin, 0);
-        analogWrite(leftPin, (refAngle - angle) * 4  + 80);
+//
+//        analogWrite(rightPin, 0);
+//        analogWrite(leftPin, (refAngle - angle) * 4  + 80);
         //Serial.println("Rotate right");
+        
+        // Differential: Turn right
+        analogWrite(leftPin, MOTOR_PWM );
+        analogWrite(rightPin, MOTOR_PWM  - (angle - refAngle) * MOTOR_PWM/ 90  );
 
         digitalWrite(LED, LOW);
         digitalWrite(LED2, HIGH);
 
       }
       else {
-        // Stop
-        analogWrite(rightPin, 0);
-        analogWrite(leftPin, 0);
+//        // Stop
+//        analogWrite(rightPin, 0);
+//        analogWrite(leftPin, 0);
+
+
+        // Differential: moveforward
+        analogWrite(leftPin, MOTOR_PWM );
+        analogWrite(rightPin, MOTOR_PWM  );
+        
 
         digitalWrite(LED, HIGH);
         digitalWrite(LED2, HIGH);
         //Serial.println("Straight");
 
       }
+
+      
 //    Serial.print(IRFrontFlag );
 //    Serial.print(" " );
 //    Serial.print(IRFront );
