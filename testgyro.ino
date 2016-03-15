@@ -80,6 +80,12 @@ int leftPin = 5;
 int rightPin = 6;
 int rightMotorDir = 7;
 
+// No. of laps
+int lapsNo = 0;
+int linesNo = 0;
+int lapsNoInput = 1;
+int lineFlag = 0;
+int endFlag = 0 ;
 
 // ================================================================
 // ===                      INITIAL SETUP                       ===
@@ -206,26 +212,26 @@ int toLeft(int angle , int  ref) {
 
 }
 /**
- * Returns the difference from angle to reference.
- * If diff is positve: Turn left.
- * If diff is negative: Turn right.
- * If 0. On track.
- */
-int absDiff(int angle, int ref){
-  angle = angle + 180;  
+   Returns the difference from angle to reference.
+   If diff is positve: Turn left.
+   If diff is negative: Turn right.
+   If 0. On track.
+*/
+int absDiff(int angle, int ref) {
+  angle = angle + 180;
   ref = ref + 180;
 
   int diff = angle - ref;
-  if (diff > 0 && diff < 180){
+  if (diff > 0 && diff < 180) {
     return diff;
-  }else if(diff > 180){
+  } else if (diff > 180) {
     return -(360 - diff);
-  }else if(diff < 0 && diff > -180){
+  } else if (diff < 0 && diff > -180) {
     return diff;
-  }else if(diff < -180){
+  } else if (diff < -180) {
     return (360 - -diff);
   } else return 0;
-  
+
 }
 #define stepPWM 100
 #define stepTime 10
@@ -266,23 +272,12 @@ void loop() {
       readAngle = digitalRead(readAnglePin);
 
       // Print ref
-      Serial.print("Ref = ");
-      Serial.print(refAngle);
-
-      // Print diff
-      Serial.print("\tDiff = ");
-      Serial.println(refAngle - angle);
-    
-//      int test = toLeft(angle , refAngle ) ;
-//      Serial.print("\tturn = ");
-//      if ( test )
-//        Serial.println("left");
-//
-//      else
-//        Serial.println("Right");
-
-      //analogWrite(leftPin, 250 );
-      //analogWrite(rightPin, 250  );
+            Serial.print("Ref = ");
+            Serial.print(refAngle);
+      
+            // Print diff
+            Serial.print("\tDiff = ");
+            Serial.println(refAngle - angle);
 
     }
 
@@ -291,6 +286,13 @@ void loop() {
     if (readAngle == 0) {
       refAngle = angle;
       flag = 0;
+
+      lapsNo = 0;
+      linesNo = 0;
+      lapsNoInput = 1;
+      lineFlag = 0;
+      endFlag = 0 ;
+      IRFrontFlag = 0;
     }
 
 
@@ -339,20 +341,31 @@ void loop() {
 
     // blink LED to indicate activity
     blinkState = !blinkState;
-
+    if (endFlag == 1) {
+      if (delayLong++ < 500) {
+        //Serial.println(delayLong);
+        return;
+      }
+      analogWrite(leftPin, 0 );
+      analogWrite(rightPin, 0  );
+      return;
+    }
     int angleDiff = absDiff(angle, refAngle) ;
     if ( refAngle && !IRFrontFlag) {
 
       analogWrite(backMotor, 255);
 
-      
+
       if (angleDiff > 0) {
         // Rotate left
-        analogWrite(leftPin, MOTOR_PWM - angleDiff * MOTOR_PWM / 90 );
+        if ( angleDiff < 5)
+          analogWrite(leftPin, MOTOR_PWM - angleDiff * MOTOR_PWM / 5 );
+        else
+          analogWrite(leftPin, 0 );
         analogWrite(rightPin, MOTOR_PWM );
 
-        Serial.print("Rotate left                              Left:  ");
-        Serial.println(MOTOR_PWM - (angle - refAngle) * MOTOR_PWM / 90);
+        //        Serial.print("Rotate left                              Left:  ");
+        //        Serial.println(MOTOR_PWM - (angle - refAngle) * MOTOR_PWM / 90);
 
         digitalWrite(LED, HIGH);
         digitalWrite(LED2, LOW);
@@ -360,19 +373,22 @@ void loop() {
       else if (angleDiff < 0) {
         // Rotate right
 
-        Serial.print("Rotate right                              Right:  ");
-        Serial.println(MOTOR_PWM  - (-angleDiff) * MOTOR_PWM / 90);
+        //        Serial.print("Rotate right                              Right:  ");
+        //        Serial.println(MOTOR_PWM  - (-angleDiff) * MOTOR_PWM / 90);
 
         // Differential: Turn right
         analogWrite(leftPin, MOTOR_PWM );
-        analogWrite(rightPin, MOTOR_PWM  - (-angleDiff) * MOTOR_PWM / 90  );
+        if ( angleDiff > -5 )
+          analogWrite(rightPin, MOTOR_PWM  - (-angleDiff) * MOTOR_PWM / 5  );
+        else
+          analogWrite(rightPin, 0  );
 
         digitalWrite(LED, LOW);
         digitalWrite(LED2, HIGH);
 
       }
       else {
-        
+
         // Differential: moveforward
         analogWrite(leftPin, MOTOR_PWM );
         analogWrite(rightPin, MOTOR_PWM  );
@@ -386,38 +402,89 @@ void loop() {
 
       // IR reading
       if (!IRFront) {
-        refAngle -= 90;
-        refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
-                   (refAngle > 180) ? (refAngle - 180) + -180 :
-                   refAngle;
         IRFrontFlag = 1;
+        lineFlag = 1;
+        linesNo++;
+
+        Serial.println(linesNo);
+        if (linesNo % 6 != 0 && linesNo % 6 != 1)
+        {
+          Serial.println("Rotating" );
+          refAngle -= 90;
+          refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
+                     (refAngle > 180) ? (refAngle - 180) + -180 :
+                     refAngle;
+        }
       }
 
 
 
     } else if ( IRFrontFlag ) {
 
-      Serial.println("Rotating" );
-      if (angleDiff > 0) {
-        analogWrite(leftPin, 0 );
-        analogWrite(rightPin, MOTOR_PWM  );
-        digitalWrite(LED, HIGH);
-        digitalWrite(LED2, LOW);
+      // Either turn, or skip (stop)
+      if ( linesNo % 6 != 0 && linesNo % 6 != 1 ) {
+        // Turn
+        // Serial.println("Rotating" );
+        if (angleDiff > 0) {
+          analogWrite(leftPin, 0 );
+          analogWrite(rightPin, MOTOR_PWM  );
+          digitalWrite(LED, HIGH);
+          digitalWrite(LED2, LOW);
+        }
+
+        else if ( angleDiff < 0) {
+          analogWrite(leftPin, MOTOR_PWM );
+          analogWrite(rightPin, 0  );
+          digitalWrite(LED, LOW);
+          digitalWrite(LED2, HIGH);
+
+        }
+        else if ( angleDiff == 0 ) {
+
+          analogWrite(leftPin, 0 );
+          analogWrite(rightPin, 0  );
+          IRFrontFlag = 0;
+        }
+        
+        if (linesNo % 6 == 5) {
+          // Completed a lap
+          lapsNo++;
+        }
+
+      } else  if (lineFlag == 1) {
+        // Skip or Stop
+        lineFlag = 2;
+
+        if (linesNo % 6 == 1) {
+//          Serial.println("\t\tSkipping");
+          return;
+        } else if ( linesNo % 6 == 0 ) {
+          // First line
+//          Serial.print("Stoping: ");
+//          Serial.print(lapsNo);
+//          Serial.print(" ");
+//          Serial.println(lapsNoInput);
+          
+          if ( lapsNo >= lapsNoInput ) {
+            analogWrite(leftPin, MOTOR_PWM );
+            analogWrite(rightPin, MOTOR_PWM  );
+            endFlag = 1;
+            delayLong = 0;
+            return;
+          }
+          else {
+            return;
+          }
+        }
+
+
+
+      } else {
+        // if (lineFlag++ < 200)  return;
+        if (IRFront) IRFrontFlag = 0;
       }
 
-      else if ( angleDiff < 0) {
-        analogWrite(leftPin, MOTOR_PWM );
-        analogWrite(rightPin, 0  );
-        digitalWrite(LED, LOW);
-        digitalWrite(LED2, HIGH);
 
-      }
-      else if ( angleDiff == 0 ) {
-
-        analogWrite(leftPin, 0 );
-        analogWrite(rightPin, 0  );
-        IRFrontFlag = 0;
-      }
 
     } else {
 
