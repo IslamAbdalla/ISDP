@@ -77,6 +77,10 @@ int IRLeftPin = 9;
 int IRRightPin = 3;
 int IRLeft;
 int IRRight ;
+int IRLeftEnable = 1 ;
+int IRRightEnable = 1 ;
+int IRLeftFlag = 1;
+int IRRightFlag = 1;
 
 #define MOTOR_PWM   255
 
@@ -239,8 +243,8 @@ int absDiff(int angle, int ref) {
   } else return 0;
 
 }
-#define stepPWM 100
-#define stepTime 10
+#define WHITE 0
+#define BLACK 1
 long int delayLong = 0;
 void loop() {
   // if programming failed, don't try to do anything
@@ -360,6 +364,39 @@ void loop() {
         return;
       }
     }
+
+    // -------------------- Left and Right IR -------- //
+    if ( refAngle) {
+      if (IRLeft == 0 && IRLeftFlag == 1 ) {
+        if ( IRLeftEnable == 1 ) {
+          refAngle += 5;
+          refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
+                     (refAngle > 180) ? (refAngle - 180) + -180 :
+                     refAngle;
+        }
+        IRLeftFlag = 0;
+      }
+      if ( IRLeft == BLACK  && IRLeftFlag == 0 ) {
+        IRLeftFlag = 1;
+        IRLeftEnable == 1;
+      }
+
+
+      if (IRRight == 0 && IRRightFlag == 1) {
+        if ( IRRightEnable == 1 ) {
+          refAngle -= 5;
+          refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
+                     (refAngle > 180) ? (refAngle - 180) + -180 :
+                     refAngle;
+        }
+        IRRightFlag = 0;
+      }
+      if (IRRight == BLACK && IRRightFlag == 0) {
+        IRRightFlag = 1;
+        IRRightEnable == 1   ;
+      }
+    }
+
     int angleDiff = absDiff(angle, refAngle) ;
     if ( refAngle && !IRFrontFlag) {
 
