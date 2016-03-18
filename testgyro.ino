@@ -63,7 +63,6 @@ int readAnglePin = 11;
 int flag = 1;
 int readAngle;
 int refAngle = 0;
-int backMotor = 9;
 int angle ;
 int LED = 10;
 int LED2 = 8;
@@ -73,11 +72,17 @@ int IRFrontPin = 12;
 int IRFront = 1;
 int IRFrontFlag = 0 ;
 
+
+int IRLeftPin = 9;
+int IRRightPin = 3;
+int IRLeft;
+int IRRight ;
+
 #define MOTOR_PWM   255
 
 int leftMotorDir = 4;
-int leftPin = 5;
-int rightPin = 6;
+int leftPin = 6;
+int rightPin = 5;
 int rightMotorDir = 7;
 
 // No. of laps
@@ -100,7 +105,8 @@ void setup() {
   pinMode(readAnglePin, INPUT);
   pinMode(leftPin, OUTPUT);
   pinMode(rightPin, OUTPUT);
-  pinMode(backMotor, OUTPUT);
+  pinMode(IRLeftPin, INPUT);
+  pinMode(IRRightPin, INPUT);
   pinMode(IRFrontPin, INPUT);
   pinMode(leftMotorDir, OUTPUT);
   pinMode(rightMotorDir, OUTPUT);
@@ -249,6 +255,9 @@ void loop() {
     // delay(10);
     angle = ypr[0] * 180 / M_PI;
     IRFront = digitalRead(IRFrontPin);   // White ==== 0; Black === 1;
+    IRLeft = digitalRead(IRLeftPin);
+    IRRight = digitalRead(IRRightPin);
+
     //    if (delayLong++ > 30000 ) { flag = 0;
     //      }
     if ( flag) {
@@ -272,12 +281,12 @@ void loop() {
       readAngle = digitalRead(readAnglePin);
 
       // Print ref
-            Serial.print("Ref = ");
-            Serial.print(refAngle);
-      
-            // Print diff
-            Serial.print("\tDiff = ");
-            Serial.println(refAngle - angle);
+      Serial.print("Ref = ");
+      Serial.print(refAngle);
+
+      // Print diff
+      Serial.print("\tDiff = ");
+      Serial.println(refAngle - angle);
 
     }
 
@@ -342,18 +351,19 @@ void loop() {
     // blink LED to indicate activity
     blinkState = !blinkState;
     if (endFlag == 1) {
-      if (delayLong++ < 500) {
+      if (delayLong++ < 400) {
         //Serial.println(delayLong);
+        // return;
+      } else {
+        analogWrite(leftPin, 0 );
+        analogWrite(rightPin, 0  );
         return;
       }
-      analogWrite(leftPin, 0 );
-      analogWrite(rightPin, 0  );
-      return;
     }
     int angleDiff = absDiff(angle, refAngle) ;
     if ( refAngle && !IRFrontFlag) {
 
-      analogWrite(backMotor, 255);
+      //analogWrite(IRLeftPin, 255);
 
 
       if (angleDiff > 0) {
@@ -364,8 +374,8 @@ void loop() {
           analogWrite(leftPin, 0 );
         analogWrite(rightPin, MOTOR_PWM );
 
-        //        Serial.print("Rotate left                              Left:  ");
-        //        Serial.println(MOTOR_PWM - (angle - refAngle) * MOTOR_PWM / 90);
+        Serial.print("Rotate left                              Left:  ");
+        Serial.println(MOTOR_PWM - (angle - refAngle) * MOTOR_PWM / 90);
 
         digitalWrite(LED, HIGH);
         digitalWrite(LED2, LOW);
@@ -373,8 +383,8 @@ void loop() {
       else if (angleDiff < 0) {
         // Rotate right
 
-        //        Serial.print("Rotate right                              Right:  ");
-        //        Serial.println(MOTOR_PWM  - (-angleDiff) * MOTOR_PWM / 90);
+        Serial.print("Rotate right                              Right:  ");
+        Serial.println(MOTOR_PWM  - (-angleDiff) * MOTOR_PWM / 90);
 
         // Differential: Turn right
         analogWrite(leftPin, MOTOR_PWM );
@@ -445,7 +455,7 @@ void loop() {
           analogWrite(rightPin, 0  );
           IRFrontFlag = 0;
         }
-        
+
         if (linesNo % 6 == 5) {
           // Completed a lap
           lapsNo++;
@@ -456,15 +466,15 @@ void loop() {
         lineFlag = 2;
 
         if (linesNo % 6 == 1) {
-//          Serial.println("\t\tSkipping");
+          //          Serial.println("\t\tSkipping");
           return;
         } else if ( linesNo % 6 == 0 ) {
           // First line
-//          Serial.print("Stoping: ");
-//          Serial.print(lapsNo);
-//          Serial.print(" ");
-//          Serial.println(lapsNoInput);
-          
+          //          Serial.print("Stoping: ");
+          //          Serial.print(lapsNo);
+          //          Serial.print(" ");
+          //          Serial.println(lapsNoInput);
+
           if ( lapsNo >= lapsNoInput ) {
             analogWrite(leftPin, MOTOR_PWM );
             analogWrite(rightPin, MOTOR_PWM  );
