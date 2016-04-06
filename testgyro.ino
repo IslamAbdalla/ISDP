@@ -84,7 +84,7 @@ int IRRightFlag = 1;
 
 float rightTurnSpeed = 0;
 float leftTurnSpeed = 0;
-float turnDelay = 1;
+float turnDelay = 1.5;
 
 #define MOTOR_PWM  ( 255  )
 #define MAX255(X,Y) ( (X-Y)>255?255:X-Y )
@@ -122,6 +122,12 @@ void setup() {
 
   analogWrite(leftPin, 0 );
   analogWrite(rightPin, 0  );
+
+  // For switches  
+  pinMode(A0, INPUT);
+  pinMode(A1, INPUT);
+  pinMode(A2, INPUT);
+  pinMode(A3, INPUT);
 
   /*************************************************************/
 
@@ -264,12 +270,12 @@ void loop() {
       readAngle = digitalRead(readAnglePin);
 
             // Print ref
-            Serial.print("Ref = ");
-            Serial.print(refAngle);
-      
-            // Print diff
-            Serial.print("\tDiff = ");
-            Serial.println(refAngle - angle);
+//            Serial.print("Ref = ");
+//            Serial.print(refAngle);
+//      
+//            // Print diff
+//            Serial.print("\tDiff = ");
+//            Serial.println(refAngle - angle);
 
     }
 
@@ -281,10 +287,16 @@ void loop() {
 
       lapsNo = 0;
       linesNo = 0;
-      lapsNoInput = 1;
+      //lapsNoInput = 1;
       lineFlag = 0;
       endFlag = 0 ;
       IRFrontFlag = 0;
+      lapsNoInput = digitalRead(A3) * 1 + 
+                   digitalRead(A2) * 2 +
+                   digitalRead(A1) * 4 +
+                   digitalRead(A0) * 8 ;
+            Serial.print("\t\t\t ");
+            Serial.println(lapsNoInput);
     }
 
 
@@ -334,7 +346,7 @@ void loop() {
     // blink LED to indicate activity
     blinkState = !blinkState;
     if (endFlag == 1) {
-      if (delayLong++ < 400) {
+      if (delayLong++ < 300) {
         //Serial.println(delayLong);
         // return;
       } else {
@@ -346,7 +358,7 @@ void loop() {
 
     // -------------------- Left and Right IR -------- //
     if ( refAngle) {
-      if (IRLeft == WHITE && IRLeftFlag == 1 ) {
+      if (IRLeft == WHITE /* && IRLeftFlag == 1 */) {
         if ( IRLeftEnable == 1 ) {
           rightTurnSpeed = -250;
         }
@@ -358,7 +370,7 @@ void loop() {
       }
 
 
-      if (IRRight == WHITE && IRRightFlag == 1) {
+      if (IRRight == WHITE /* && IRRightFlag == 1*/) {
         if ( IRRightEnable == 1 ) {
           leftTurnSpeed = -250;
         }
@@ -456,7 +468,10 @@ void loop() {
           refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
                      (refAngle > 180) ? (refAngle - 180) + -180 :
                      refAngle;
+           if(linesNo % 6 == 5){
+          lapsNo++;
         }
+        } 
       }
 
 
@@ -486,11 +501,15 @@ void loop() {
           analogWrite(leftPin, 0 );
           analogWrite(rightPin, 0  );
           IRFrontFlag = 0;
+
+          // So the car won't continue turning;
+          leftTurnSpeed = 0;
+          rightTurnSpeed = 0;
         }
 
         if (linesNo % 6 == 5) {
           // Completed a lap
-          lapsNo++;
+          //lapsNo++;
         }
 
       } else  if (lineFlag == 1) {
@@ -507,6 +526,8 @@ void loop() {
 
           IRRightEnable = 0;
           IRLeftEnable = 0;
+          
+            
           if ( lapsNo >= lapsNoInput ) {
             analogWrite(leftPin, MOTOR_PWM );
             analogWrite(rightPin, MOTOR_PWM  );
