@@ -74,7 +74,7 @@ int IRFrontFlag = 0 ;
 
 
 int IRLeftPin = 9;
-int IRRightPin = 4;
+int IRRightPin = 3;
 int IRLeft;
 int IRRight ;
 int IRLeftEnable = 1 ;
@@ -84,16 +84,16 @@ int IRRightFlag = 1;
 
 float rightTurnSpeed = 0;
 float leftTurnSpeed = 0;
-float turnDelay = 2;
+float turnDelay = 3;
 
 #define MOTOR_PWM  ( 255  )
 #define MAX255(X,Y) ( (X-Y)>255?255:X-Y )
 
-int leftMotorDir = 0;
+int leftMotorDir = 7;
 int leftPin = 6;
-int leftPinOp = 3;
+int leftPinOp = 20;//NOT USED
 int rightPin = 5;
-int rightMotorDir = 7;
+int rightMotorDir = 4;
 
 // No. of laps
 int lapsNo = 0;
@@ -102,6 +102,10 @@ int lapsNoInput = 1;
 int lineFlag = 0;
 int endFlag = 0 ;
 
+#define RightForward    digitalWrite(rightMotorDir, LOW)
+#define RightBackward    digitalWrite(rightMotorDir, HIGH)
+#define LeftForward    digitalWrite(leftMotorDir, LOW)
+#define LeftBackward    digitalWrite(leftMotorDir, HIGH)
 // ================================================================
 // ===                      INITIAL SETUP                       ===
 // ================================================================
@@ -131,6 +135,9 @@ void setup() {
   pinMode(A1, INPUT);
   pinMode(A2, INPUT);
   pinMode(A3, INPUT);
+
+  RightForward;
+  LeftForward;
 
   /*************************************************************/
 
@@ -300,7 +307,9 @@ void loop() {
                     digitalRead(A0) * 8 ;
       Serial.print("\t\t\t ");
       Serial.println(lapsNoInput);
-          analogWrite(leftPinOp, 0 );
+      analogWrite(leftPinOp, 0 );
+      RightForward;
+      LeftForward;
     }
 
 
@@ -350,7 +359,7 @@ void loop() {
     // blink LED to indicate activity
     blinkState = !blinkState;
     if (endFlag == 1) {
-      if (delayLong++ < 200) {
+      if (delayLong++ < 300) {
         //Serial.println(delayLong);
         // return;
       } else {
@@ -371,6 +380,11 @@ void loop() {
       if ( IRLeft == BLACK  && IRLeftFlag == 0 ) {
         IRLeftFlag = 1;
         IRLeftEnable = 1;
+
+        refAngle += 2;            // Add 3 to adjust the gyro offset
+        refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
+                   (refAngle > 180) ? (refAngle - 180) + -180 :
+                   refAngle;
       }
 
 
@@ -383,22 +397,27 @@ void loop() {
       if (IRRight == BLACK && IRRightFlag == 0) {
         IRRightFlag = 1;
         IRRightEnable = 1   ;
+
+        refAngle -= 2;            // Add 3 to adjust the gyro offset
+        refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
+                   (refAngle > 180) ? (refAngle - 180) + -180 :
+                   refAngle;
       }
     }
-    if (rightTurnSpeed < 0) rightTurnSpeed += turnDelay;
-    if (leftTurnSpeed < 0) leftTurnSpeed += turnDelay;
+    if (rightTurnSpeed < 0) rightTurnSpeed += turnDelay; else rightTurnSpeed=0;
+    if (leftTurnSpeed < 0) leftTurnSpeed += turnDelay; else leftTurnSpeed = 0;
+//
+//        Serial.print(IRLeftEnable);
+//        Serial.print("   ");
+//        Serial.print(IRLeftFlag);
+//        Serial.print("  \t ");
+//        Serial.print(IRRightFlag);
+//        Serial.print("   ");
+//        Serial.println(IRRightEnable);
 
-    //    Serial.print(IRLeftEnable);
-    //    Serial.print("   ");
-    //    Serial.print(IRLeftFlag);
-    //    Serial.print("  \t ");
-    //    Serial.print(IRRightFlag);
-    //    Serial.print("   ");
-    //    Serial.println(IRRightEnable);
-
-    //    Serial.print(rightTurnSpeed);
-    //    Serial.print("   ");
-    //    Serial.println(leftTurnSpeed);
+        Serial.print(rightTurnSpeed);
+        Serial.print("   ");
+       Serial.println(leftTurnSpeed);
     // ------------------------------------------------------------------//
 
     int angleDiff = absDiff(angle, refAngle) ;
@@ -415,8 +434,8 @@ void loop() {
 
         if (angleDiff > 0) {
           // Turn left
-          if ( angleDiff < 5)
-            analogWrite(leftPin, ((MOTOR_PWM - angleDiff * MOTOR_PWM / 5))    );
+          if ( angleDiff < 12)
+            analogWrite(leftPin, ((MOTOR_PWM - angleDiff * MOTOR_PWM / 12))    );
           else
             analogWrite(leftPin, 0 );
           analogWrite(rightPin, MOTOR_PWM );
@@ -436,8 +455,8 @@ void loop() {
 
           // Differential: Turn right
           analogWrite(leftPin, MOTOR_PWM);
-          if ( angleDiff > -5 )
-            analogWrite(rightPin, ((MOTOR_PWM  - (-angleDiff) * MOTOR_PWM / 5))   );
+          if ( angleDiff > -12 )
+            analogWrite(rightPin, ((MOTOR_PWM  - (-angleDiff) * MOTOR_PWM / 12))   );
           else
             analogWrite(rightPin, 0 );
 
@@ -496,23 +515,41 @@ void loop() {
         // Turn
         // Serial.println("Rotating" );
         if (angleDiff > 0) {
-          analogWrite(leftPin, 0 );
-          analogWrite(leftPinOp, MOTOR_PWM );
+          // Turning Left
+          LeftBackward;
+          RightForward;
+
+          if ( angleDiff < 12) {
+            analogWrite(leftPin, (( angleDiff * MOTOR_PWM / 12))    );
+          } else {
+            analogWrite(leftPin, MOTOR_PWM );
+          }
+          //analogWrite(leftPin, MOTOR_PWM );
           analogWrite(rightPin, MOTOR_PWM  );
           digitalWrite(LED, HIGH);
           digitalWrite(LED2, LOW);
         }
 
         else if ( angleDiff < 0) {
-          analogWrite(leftPin, MOTOR_PWM );
-          analogWrite(leftPinOp, 0 );
-          analogWrite(rightPin, 0  );
+          // Turn Right
+
+          LeftForward;
+          RightBackward;
+          if ( angleDiff > -12) {
+            analogWrite(leftPin, (( -angleDiff * MOTOR_PWM / 12))    );
+          } else {
+            analogWrite(leftPin, MOTOR_PWM );
+          }
+          // analogWrite(leftPin, MOTOR_PWM );
+          analogWrite(rightPin, MOTOR_PWM  );
           digitalWrite(LED, LOW);
           digitalWrite(LED2, HIGH);
 
         }
         else if ( angleDiff == 0 ) {
 
+          LeftForward;
+          RightForward;
           analogWrite(leftPin, 0 );
           analogWrite(leftPinOp, 0 );
           analogWrite(rightPin, 0  );
