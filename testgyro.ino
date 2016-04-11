@@ -81,6 +81,8 @@ int IRLeftEnable = 1 ;
 int IRRightEnable = 1 ;
 int IRLeftFlag = 1;
 int IRRightFlag = 1;
+int lineIRDelay = 0;              // Delay when reading the start and stop lines after which, IRs are enabled again
+int lineIRFlag = 0;
 
 float rightTurnSpeed = 0;
 float leftTurnSpeed = 0;
@@ -360,7 +362,7 @@ void loop() {
     // blink LED to indicate activity
     blinkState = !blinkState;
     if (endFlag == 1) {
-      if (delayLong++ < 300) {
+      if (delayLong++ < 200) {
         //Serial.println(delayLong);
         // return;
       } else {
@@ -369,6 +371,59 @@ void loop() {
         return;
       }
     }
+
+    //--------------------- Start and Stop adjustments-------------//
+    if ( IRLeftEnable == 0 || IRRightEnable == 0) {
+     
+
+      if (lineIRFlag == 1) {
+        // Enable IR after delay, not black.
+        if (lineIRDelay++ > 50) {
+          IRLeftEnable = 1;
+          IRRightEnable = 1;
+        }        
+          return;
+      }
+
+      if ( IRLeft == WHITE && IRRight == BLACK ) {     // IF left
+        LeftBackward;
+        analogWrite(leftPin, 100 );
+        RightForward;
+        analogWrite(rightPin, MOTOR_PWM  );
+
+      } else if ( IRRight == WHITE && IRLeft == BLACK) {  // If right
+        LeftForward;
+        analogWrite(leftPin, MOTOR_PWM );
+        RightBackward;
+        analogWrite(rightPin, 100 );
+
+      } else if (IRLeft == WHITE && IRRight == WHITE) {
+         RightForward;
+      LeftForward;
+        analogWrite(leftPin, MOTOR_PWM  );
+        analogWrite(rightPin, MOTOR_PWM  );
+        lineIRFlag = 1;
+        lineIRDelay = 0;
+        // Set current as refAngle
+        
+      refAngle = angle;
+
+      } else {         // Then go straight
+         RightForward;
+      LeftForward;
+        analogWrite(leftPin, MOTOR_PWM  );
+        analogWrite(rightPin, MOTOR_PWM  );
+      }
+
+      delayLong = 0;
+      return;
+    }
+
+    // This should only be executed if IRLeftEnable is 1 and IRRightEnable is 1
+    lineIRDelay = 0;
+    lineIRFlag = 0;
+
+    //------------------End of Start and Stop adjustments-------------//
 
     // -------------------- Left and Right IR -------- //
     if ( refAngle) {
@@ -380,7 +435,7 @@ void loop() {
       }
       if ( IRLeft == BLACK  && IRLeftFlag == 0 ) {
         IRLeftFlag = 1;
-        IRLeftEnable = 1;
+        // IRLeftEnable = 1;
 
         refAngle += 2;            // Add 3 to adjust the gyro offset
         refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
@@ -397,7 +452,7 @@ void loop() {
       }
       if (IRRight == BLACK && IRRightFlag == 0) {
         IRRightFlag = 1;
-        IRRightEnable = 1   ;
+        //  IRRightEnable = 1   ;
 
         refAngle -= 2;            // Add 3 to adjust the gyro offset
         refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
@@ -508,10 +563,7 @@ void loop() {
           if (linesNo % 6 == 5) {
 
             lapsNo++;
-//            refAngle += 3;              // Add 3 to adjust the gyro offset
-//            refAngle = ( refAngle < -179 ) ?  (refAngle - -180) + 180 :
-//                       (refAngle > 180) ? (refAngle - 180) + -180 :
-//                       refAngle;
+
 
           }
 
@@ -552,109 +604,107 @@ void loop() {
         else if (angleDiff > 10 && linesNo % 6  == 5) {
           // Turning Left
 
-          if(angleDiff < 25){
+          if (angleDiff < 25) {
             RightForward;
             LeftForward;
-          analogWrite(leftPin, 120 );
-          analogWrite(rightPin, MOTOR_PWM  );
-          
+            analogWrite(leftPin, 120 );
+            analogWrite(rightPin, MOTOR_PWM  );
+
           }
           else {
-          LeftBackward;
-          RightForward;
-          analogWrite(leftPin, MOTOR_PWM );
-          analogWrite(rightPin, MOTOR_PWM  );
-          digitalWrite(LED, HIGH);
-          digitalWrite(LED2, LOW);
+            LeftBackward;
+            RightForward;
+            analogWrite(leftPin, MOTOR_PWM );
+            analogWrite(rightPin, MOTOR_PWM  );
+            digitalWrite(LED, HIGH);
+            digitalWrite(LED2, LOW);
           }
         }
 
         else if ( angleDiff < -10 && linesNo % 6  == 5) {
           // Turn Right
 
-          if(angleDiff < 25){
+          if (angleDiff < 25) {
             RightForward;
             LeftForward;
-          analogWrite(leftPin, MOTOR_PWM );
-          analogWrite(rightPin, 120  );
-          
+            analogWrite(leftPin, MOTOR_PWM );
+            analogWrite(rightPin, 120  );
+
           }
           else {
-          LeftForward;
-          RightBackward;
-          analogWrite(leftPin, MOTOR_PWM );
-          analogWrite(rightPin, MOTOR_PWM  );
-          digitalWrite(LED, LOW);
-          digitalWrite(LED2, HIGH);
+            LeftForward;
+            RightBackward;
+            analogWrite(leftPin, MOTOR_PWM );
+            analogWrite(rightPin, MOTOR_PWM  );
+            digitalWrite(LED, LOW);
+            digitalWrite(LED2, HIGH);
           }
         }
-          //  END OF HARDCODING FOR THE LAST TURN
+        //  END OF HARDCODING FOR THE LAST TURN
 
 
 
-          else  {
+        else  {
 
-            LeftForward;
-            RightForward;
-            //          analogWrite(leftPin, 0 );
-            //          analogWrite(leftPinOp, 0 );
-            //          analogWrite(rightPin, 0  );
-            IRFrontFlag = 0;
+          LeftForward;
+          RightForward;
 
-            // So the car won't continue turning;
-            leftTurnSpeed = 0;
-            rightTurnSpeed = 0;
-          }
+          IRFrontFlag = 0;
 
-          if (linesNo % 6 == 5) {
-            // Completed a lap
-            //lapsNo++;
-          }
+          // So the car won't continue turning;
+          leftTurnSpeed = 0;
+          rightTurnSpeed = 0;
+        }
 
-        } else  if (lineFlag == 1) {
-          // Skip or Stop
-          lineFlag = 2;
+        if (linesNo % 6 == 5) {
+          // Completed a lap
+          //lapsNo++;
+        }
 
-          if (linesNo % 6 == 1) {
-            IRRightEnable = 0;
-            IRLeftEnable = 0;
-            //  Skip this white ine
+      } else  if (lineFlag == 1) {
+        // Skip or Stop
+        lineFlag = 2;
+
+        if (linesNo % 6 == 1) {
+          IRRightEnable = 0;
+          IRLeftEnable = 0;
+          //  Skip this white ine
+          return;
+        } else if ( linesNo % 6 == 0 ) {
+          // Stop line
+
+          IRRightEnable = 0;
+          IRLeftEnable = 0;
+
+
+          if ( lapsNo >= lapsNoInput ) {
+            analogWrite(leftPin, MOTOR_PWM );
+            analogWrite(rightPin, MOTOR_PWM  );
+            endFlag = 1;
+            delayLong = 0;
             return;
-          } else if ( linesNo % 6 == 0 ) {
-            // Stop line
-
-            IRRightEnable = 0;
-            IRLeftEnable = 0;
-
-
-            if ( lapsNo >= lapsNoInput ) {
-              analogWrite(leftPin, MOTOR_PWM );
-              analogWrite(rightPin, MOTOR_PWM  );
-              endFlag = 1;
-              delayLong = 0;
-              return;
-            }
-            else {
-              return;
-            }
           }
-
-
-
-        } else {
-          if (IRFront) IRFrontFlag = 0;
+          else {
+            return;
+          }
         }
 
 
 
       } else {
-
-        analogWrite(leftPin, 0 );
-        analogWrite(rightPin, 0  );
+        if (IRFront) IRFrontFlag = 0;
       }
 
 
 
+    } else {
 
+      analogWrite(leftPin, 0 );
+      analogWrite(rightPin, 0  );
     }
+
+
+
+
   }
+}
