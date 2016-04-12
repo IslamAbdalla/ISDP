@@ -362,7 +362,7 @@ void loop() {
     // blink LED to indicate activity
     blinkState = !blinkState;
     if (endFlag == 1) {
-      if (delayLong++ < 200) {
+      if (delayLong++ < 170) {
         //Serial.println(delayLong);
         // return;
       } else {
@@ -601,7 +601,7 @@ void loop() {
         }
 
         // HARDCODING FOR THE LAST TURN
-        else if (angleDiff > 10 && linesNo % 6  == 5) {
+        else if (angleDiff > 18 && linesNo % 6  == 5) {
           // Turning Left
 
           if (angleDiff < 25) {
@@ -621,7 +621,7 @@ void loop() {
           }
         }
 
-        else if ( angleDiff < -10 && linesNo % 6  == 5) {
+        else if ( angleDiff < -18 && linesNo % 6  == 5) {
           // Turn Right
 
           if (angleDiff < 25) {
