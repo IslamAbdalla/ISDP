@@ -65,7 +65,7 @@ int readAngle;
 int refAngle = 0;
 int angle ;
 int LED = 10;
-int LED2 = 8;
+int LED2 = 80;
 
 // IR Variables
 int IRFrontPin = 12;
@@ -106,9 +106,13 @@ int lineFlag = 0;
 int endFlag = 0 ;
 
 // Touch switches
-int TWFrontPin = 130;
-int TWLeftPin = 100;
-int TWRightPin = 200;
+int TWFrontPin = 0;
+int TWLeftPin = 13;
+int TWRightPin = 8;
+
+int TWFrontFlag = 0;
+int TWLeftFlag = 0;
+int TWRightFlag = 0;
 
 int TWDelay = 0;
 
@@ -135,6 +139,11 @@ void setup() {
   pinMode(IRFrontPin, INPUT);
   pinMode(leftMotorDir, OUTPUT);
   pinMode(rightMotorDir, OUTPUT);
+
+  // Touch switches
+  pinMode(TWFrontPin, INPUT);
+  pinMode(TWLeftPin, INPUT);
+  pinMode(TWRightPin, INPUT);
 
   analogWrite(leftPin, 0 );
   analogWrite(leftPinOp, 0 );
@@ -381,15 +390,15 @@ void loop() {
 
     //--------------------- Start and Stop adjustments-------------//
     if ( IRLeftEnable == 0 || IRRightEnable == 0) {
-     
+
 
       if (lineIRFlag == 1) {
         // Enable IR after delay, not black.
         if (lineIRDelay++ > 50) {
           IRLeftEnable = 1;
           IRRightEnable = 1;
-        }        
-          return;
+        }
+        return;
       }
 
       if ( IRLeft == WHITE && IRRight == BLACK ) {     // IF left
@@ -405,19 +414,19 @@ void loop() {
         analogWrite(rightPin, 100 );
 
       } else if (IRLeft == WHITE && IRRight == WHITE) {
-         RightForward;
-      LeftForward;
+        RightForward;
+        LeftForward;
         analogWrite(leftPin, MOTOR_PWM  );
         analogWrite(rightPin, MOTOR_PWM  );
         lineIRFlag = 1;
         lineIRDelay = 0;
         // Set current as refAngle
-        
-      refAngle = angle;
+
+        refAngle = angle;
 
       } else {         // Then go straight
-         RightForward;
-      LeftForward;
+        RightForward;
+        LeftForward;
         analogWrite(leftPin, MOTOR_PWM  );
         analogWrite(rightPin, MOTOR_PWM  );
       }
@@ -477,11 +486,89 @@ void loop() {
     //        Serial.print(IRRightFlag);
     //        Serial.print("   ");
     //        Serial.println(IRRightEnable);
-
-    Serial.print(rightTurnSpeed);
-    Serial.print("   ");
-    Serial.println(leftTurnSpeed);
+//
+//    Serial.print(rightTurnSpeed);
+//    Serial.print("   ");
+//    Serial.println(leftTurnSpeed);
     // ------------------------------------------------------------------//
+
+    // ----------------------- Touch Sensor -----------------------------//
+
+    if ( refAngle ) {
+      if (!digitalRead(TWFrontPin)) TWFrontFlag = 1;
+      else if (!digitalRead(TWRightPin)) TWRightFlag = 1;
+      else if (!digitalRead(TWLeftPin)) TWLeftFlag = 1;
+
+      if(TWFrontFlag == 1){
+      if (TWDelay++ < 50) {
+        RightBackward;
+        LeftBackward;
+        analogWrite(leftPin, MOTOR_PWM  );
+        analogWrite(rightPin, MOTOR_PWM  );
+
+        return;
+      }
+      TWDelay = 0;
+      IRFront = 0;
+      TWFrontFlag = 0;
+      RightForward;
+      LeftForward;
+      }
+
+      if(TWRightFlag == 1){
+      if (TWDelay++ < 90) {
+        if(TWDelay < 50){
+        RightBackward;
+        LeftBackward;
+        analogWrite(leftPin, MOTOR_PWM  );
+        analogWrite(rightPin, MOTOR_PWM  );
+        }else {
+          
+        RightForward;
+        LeftBackward;
+        analogWrite(leftPin, MOTOR_PWM  );
+        analogWrite(rightPin, MOTOR_PWM  );
+        }
+        
+        return;
+      }
+      TWDelay = 0;
+      TWRightFlag = 0;
+      RightForward;
+      LeftForward;
+      }
+
+
+      if(TWLeftFlag == 1){
+      if (TWDelay++ < 90) {
+        if(TWDelay < 50){
+        RightBackward;
+        LeftBackward;
+        analogWrite(leftPin, MOTOR_PWM  );
+        analogWrite(rightPin, MOTOR_PWM  );
+        }else {
+          
+        RightBackward;
+        LeftForward;
+        analogWrite(leftPin, MOTOR_PWM  );
+        analogWrite(rightPin, MOTOR_PWM  );
+        }
+        
+        return;
+      }
+      TWDelay = 0;
+      TWLeftFlag = 0;
+      RightForward;
+      LeftForward;
+      }
+
+            
+    }
+//    int pri = digitalRead(TWRightPin);
+//    Serial.println(pri );
+
+    // ------------------- End of Touch Sensor -------------------------//
+
 
     int angleDiff = absDiff(angle, refAngle) ;
     if ( refAngle && !IRFrontFlag) {
