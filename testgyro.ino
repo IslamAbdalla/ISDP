@@ -23,7 +23,7 @@ MPU6050 mpu;
 #define OUTPUT_READABLE_YAWPITCHROLL
 
 
-#define LED_PIN 13 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
+#define LED_PIN 130 // (Arduino is 13, Teensy is 11, Teensy++ is 6)
 bool blinkState = false;
 // MPU control/status vars
 bool dmpReady = false;  // set true if DMP init was successful
@@ -104,6 +104,13 @@ int linesNo = 0;
 int lapsNoInput = 1;
 int lineFlag = 0;
 int endFlag = 0 ;
+
+// Touch switches
+int TWFrontPin = 130;
+int TWLeftPin = 100;
+int TWRightPin = 200;
+
+int TWDelay = 0;
 
 #define RightForward    digitalWrite(rightMotorDir, LOW)
 #define RightBackward    digitalWrite(rightMotorDir, HIGH)
